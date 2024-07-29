@@ -1,0 +1,124 @@
+// ==UserScript==
+// @name         Enhanced Randomize Fingerprint with Multiple YAML Rules
+// @namespace    http://tampermonkey.net/
+// @version      0.5
+// @description  Randomize fingerprint with multiple YAML rules for non-whitelisted sites, including extensive environment variables
+// @author       You
+// @match        *://*/*
+// @grant        none
+// @run-at       document-end
+// @require      https://cdn.jsdelivr.net/npm/js-yaml@4.0.0/dist/js-yaml.min.js
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    const yamlUrls = [
+        'https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Google/Google.yaml',
+        'https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTube/YouTube.yaml',
+        'https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI.yaml'
+    ];
+
+    async function fetchYaml(url) {
+        const response = await fetch(url);
+        const yamlText = await response.text();
+        return jsyaml.load(yamlText);
+    }
+
+    async function getWhitelist() {
+        const rules = await Promise.all(yamlUrls.map(fetchYaml));
+        const whitelist = rules.flatMap(rule => rule.whitelist || []);
+        return whitelist;
+    }
+
+    function randomizeFingerprint() {
+        const userAgents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.101 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/91.0.864.67',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Opera/76.0.4017.123',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Opera/76.0.4017.123',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36',
+        ];
+        const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+        Object.defineProperty(navigator, 'userAgent', {
+            value: randomUserAgent,
+            writable: false
+        });
+
+        const screenResolutions = [
+            { width: 1920, height: 1080 },
+            { width: 1366, height: 768 },
+            { width: 1440, height: 900 },
+            { width: 1600, height: 900 },
+            { width: 1536, height: 864 },
+            { width: 1280, height: 720 },
+            { width: 2560, height: 1440 },
+            { width: 3840, height: 2160 },
+            { width: 1280, height: 800 },
+            { width: 1680, height: 1050 },
+        ];
+        const randomScreenResolution = screenResolutions[Math.floor(Math.random() * screenResolutions.length)];
+        Object.defineProperty(window.screen, 'width', {
+            value: randomScreenResolution.width,
+            writable: false
+        });
+        Object.defineProperty(window.screen, 'height', {
+            value: randomScreenResolution.height,
+            writable: false
+        });
+
+        const languages = [
+            'en-US',
+            'en-GB',
+            'zh-CN',
+            'es-ES',
+            'fr-FR',
+            'de-DE',
+            'ja-JP',
+            'ko-KR',
+            'ru-RU',
+            'it-IT',
+        ];
+        const randomLanguage = languages[Math.floor(Math.random() * languages.length)];
+        Object.defineProperty(navigator, 'language', {
+            value: randomLanguage,
+            writable: false
+        });
+        Object.defineProperty(navigator, 'languages', {
+            value: [randomLanguage],
+            writable: false
+        });
+
+        const memorySizes = [
+            2 * 1024 * 1024 * 1024, // 2 GB
+            4 * 1024 * 1024 * 1024, // 4 GB
+            8 * 1024 * 1024 * 1024, // 8 GB
+            16 * 1024 * 1024 * 1024, // 16 GB
+            32 * 1024 * 1024 * 1024, // 32 GB
+        ];
+        const randomMemorySize = memorySizes[Math.floor(Math.random() * memorySizes.length)];
+        Object.defineProperty(navigator, 'deviceMemory', {
+            value: randomMemorySize,
+            writable: false
+        });
+
+        const cpuCores = [2, 4, 6, 8, 12, 16];
+        const randomCpuCores = cpuCores[Math.floor(Math.random() * cpuCores.length)];
+        Object.defineProperty(navigator, 'hardwareConcurrency', {
+            value: randomCpuCores,
+            writable: false
+        });
+    }
+
+    getWhitelist().then(whitelist => {
+        const hostname = window.location.hostname;
+        if (!whitelist.includes(hostname)) {
+            randomizeFingerprint();
+        }
+    }).catch(error => console.error('Error fetching or processing the rules:', error));
+})();
